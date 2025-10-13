@@ -1,0 +1,39 @@
+---
+services:
+  code-server:
+    #image: lscr.io/linuxserver/code-server:latest
+    image: code-server-custom
+    container_name: code-server-custom
+    cpus: 4
+    shm_size: '1024m'
+    secrets:
+      - .ssh_id_ed25519
+      - .ssh_id_ed25519.pub
+    environment:
+      - PUID=501
+      - PGID=501
+      - TZ=Etc/UTC
+      - DOCKER_MODS=linuxserver/mods:code-server-nvm|linuxserver/mods:code-server-pnpm|linuxserver/mods:code-server-golang|linuxserver/mods:code-server-rust|linuxserver/mods:code-server-zsh|linuxserver/mods:code-server-python3|linuxserver/mods:code-server-npmglobal|linuxserver/mods:code-server-extension-arguments|linuxserver/mods:code-server-flutter|linuxserver/mods:code-server-docker
+      #      - DOCKER_MODS=linuxserver/mods:code-server-nvm|linuxserver/mods:code-server-pnpm|linuxserver/mods:code-server-golang|linuxserver/mods:code-server-rust|linuxserver/mods:code-server-zsh|linuxserver/mods:code-server-python3|linuxserver/mods:code-server-npmglobal|linuxserver/mods:code-server-extension-arguments
+      - VSCODE_EXTENSION_IDS=vscode-icons-team.vscode-icons|ms-azuretools.vscode-docker
+      - PASSWORD=password #optional
+      #- HASHED_PASSWORD= #optional
+      - SUDO_PASSWORD=password #optional
+      #- SUDO_PASSWORD_HASH= #optional
+      #- PROXY_DOMAIN=code-server.my.domain #optional
+      - DEFAULT_WORKSPACE=/config/workspace #optional
+      - PWA_APPNAME=code-server-custom #optional
+    volumes:
+      - $HOME/code/code-server-workspace:/config
+    ports:
+      - 127.0.0.1:8883:8443
+      - 127.0.0.1:8300:3000
+    restart: unless-stopped
+
+secrets:
+  .ssh_id_ed25519:
+    file: $HOME/.ssh/id_ed25519
+  .ssh_id_ed25519.pub:
+    file: $HOME/.ssh/id_ed25519.pub
+
+
