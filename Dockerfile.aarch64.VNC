@@ -27,6 +27,7 @@ RUN \
     fluxbox \
     websockify \
     firefox \
+    wireguard-tools \
     sudo && \
   echo "**** install code-server ****" && \
   if [ -z ${CODE_RELEASE+x} ]; then \
