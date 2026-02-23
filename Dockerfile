@@ -21,6 +21,13 @@ RUN \
     libatomic1 \
     nano \
     net-tools \
+    xvfb \
+    x11vnc \
+    novnc \
+    fluxbox \
+    websockify \
+    firefox \
+    wireguard-tools \
     sudo && \
   echo "**** install code-server ****" && \
   if [ -z ${CODE_RELEASE+x} ]; then \
@@ -41,9 +48,63 @@ RUN \
     /tmp/* \
     /var/lib/apt/lists/* \
     /var/tmp/*
+ 
+# Xvfb starter (optional)
+RUN printf '%s\n' \
+      '#!/bin/sh' \
+      'set -e' \
+      'export DISPLAY=:99' \
+      'mkdir -p /config/.vnc' \
+      'sudo -u abc sh -c "/usr/bin/Xvfb :99 -screen 0 1920x1080x24 -ac -nolisten tcp -nolisten unix +extension RANDR > /config/.vnc/xvfb.log 2>&1 & echo \\$! > /config/.vnc/xvfb.pid" ' \
+      'echo "Xvfb started on DISPLAY=:99 (pid $(sudo cat /config/.vnc/xvfb.pid))"' \
+      > /usr/local/bin/start-xvfb.sh \
+      && chmod +x /usr/local/bin/start-xvfb.sh
+
+
+# VNC starter (noVNC on :6080)
+# WRONG: Access with http://localhost:6080/vnc.html?host=localhost&port=6080&autoconnect=1
+# Access with http://localhost:6080/vnc.html
+RUN printf '%s\n' \
+      '#!/bin/sh' \
+      'set -e' \
+      'export DISPLAY=:99' \
+      'sudo -u abc sh -lc "fluxbox -display :99 > /config/.vnc/fluxbox.log 2>&1 &"' \
+      'sudo -u abc sh -lc "x11vnc -display :99 -forever -shared -nopw -rfbport 5901 > /config/.vnc/x11vnc.log 2>&1 &"' \
+      'sudo -u abc sh -lc "websockify --web=/usr/share/novnc/ 6080 localhost:5901 > /config/.vnc/novnc.log 2>&1 &"' \
+      'echo "noVNC available on http://localhost:6080"' \
+      > /usr/local/bin/start-vnc.sh \
+      && chmod +x /usr/local/bin/start-vnc.sh
+
+# /config/.config/code-server/config.yaml
+# install VS Code extensions
+RUN /app/code-server/bin/code-server --extensions-dir /config/extensions \
+      --install-extension redhat.vscode-yaml \
+      --install-extension ms-python.python \
+      --install-extension Vue.volar \
+      --install-extension esbenp.prettier-vscode \
+      --install-extension yoavbls.pretty-ts-errors \
+      --install-extension aaron-bond.better-comments \
+      --install-extension afterxleep.chromabar \
+      --install-extension golang.go \
+      --install-extension Davejavu4u.tabs-in-focus \
+      --install-extension daveWasTaken.gitworkspace \
+      --install-extension ms-playwright.playwright \
+      #      --install-extension lennardv.set-window-color-name \
+      --install-extension cosmicsarthak.cosmicsarthak-neon-theme \
+      --install-extension 3xpo.midnight-codium
+      #      --install-extension solomonkinard.git-blame
+#RUN /usr/local/bin/install-extension ms-playwright.playwright
+  #
+#RUN sed -i 's/cert: false/cert: true/' /config/.config/code-server/config.yaml
+#TODO: here install git configs
 
 # add local files
 COPY /root /
 
 # ports and volumes
 EXPOSE 8443
+# VNC
+EXPOSE 6080
+# Wrangler
+EXPOSE 8787
+EXPOSE 8976
