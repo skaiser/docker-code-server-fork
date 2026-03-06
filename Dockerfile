@@ -26,7 +26,7 @@ RUN \
     novnc \
     fluxbox \
     websockify \
-    firefox \
+    software-properties-common \
     wireguard-tools \
     sudo && \
   echo "**** install code-server ****" && \
@@ -49,6 +49,48 @@ RUN \
     /var/lib/apt/lists/* \
     /var/tmp/*
  
+# Install Firefox and Chromium (not snaps)
+# https://linuxvox.com/blog/ubuntu-install-firefox-without-snap/
+# https://officialaptivi.wordpress.com/2025/06/14/installing-chromium-on-ubuntu-without-snap/
+RUN add-apt-repository ppa:mozillateam/ppa
+RUN add-apt-repository ppa:xtradeb/apps
+# Enable package pinning
+RUN printf '%s\n' \
+      'Package: *' \
+      'Pin: release o=LP-PPA-mozillateam' \
+      'Pin-priority: 1001' \
+      > /etc/apt/preferences.d/mozillateamppa
+RUN printf '%s\n' \
+      'Package: *' \
+      'Pin: release o=LP-PPA-xtradeb' \
+      'Pin-priority: 1001' \
+      > /etc/apt/preferences.d/xtradebppa
+RUN \
+  echo "**** installing Firefox and Chromium ****" && \
+  apt-get update && \
+  apt-get install -y \
+    firefox \
+    chromium && \
+    apt-get clean && \
+    rm -rf \
+      /config/* \
+      /tmp/* \
+      /var/lib/apt/lists/* \
+      /var/tmp/*
+# Install latest chrome dev package and fonts to support major charsets (Chinese, Japanese, Arabic, Hebrew, Thai and a few others)
+# Note: this installs the necessary libs to make the bundled version of Chrome for Testing that Puppeteer
+# installs, work.
+# https://pptr.dev/troubleshooting#running-puppeteer-in-docker
+# This is used by playwright/puppeteer in Cloudflare Workers
+RUN apt-get update \
+    && apt-get install -y wget gnupg \
+    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
+    && apt-get update \
+    && apt-get install -y google-chrome-stable fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 \
+      --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
 # Xvfb starter (optional)
 RUN printf '%s\n' \
       '#!/bin/sh' \
@@ -59,7 +101,6 @@ RUN printf '%s\n' \
       'echo "Xvfb started on DISPLAY=:99 (pid $(sudo cat /config/.vnc/xvfb.pid))"' \
       > /usr/local/bin/start-xvfb.sh \
       && chmod +x /usr/local/bin/start-xvfb.sh
-
 
 # VNC starter (noVNC on :6080)
 # WRONG: Access with http://localhost:6080/vnc.html?host=localhost&port=6080&autoconnect=1
@@ -74,6 +115,21 @@ RUN printf '%s\n' \
       'echo "noVNC available on http://localhost:6080"' \
       > /usr/local/bin/start-vnc.sh \
       && chmod +x /usr/local/bin/start-vnc.sh
+
+# To start Firefox or Chromium in VNC
+RUN printf '%s\n' \
+      '#!/bin/sh' \
+      'set -e' \
+      'export DISPLAY=:99 && firefox -display :99 &' \
+      > /usr/local/bin/start-firefox-in-vnc.sh \
+      && chmod +x /usr/local/bin/start-firefox-in-vnc.sh
+
+RUN printf '%s\n' \
+      '#!/bin/sh' \
+      'set -e' \
+      'export DISPLAY=:99 && chromium -display :99 &' \
+      > /usr/local/bin/start-chromium-in-vnc.sh \
+      && chmod +x /usr/local/bin/start-chromium-in-vnc.sh
 
 # /config/.config/code-server/config.yaml
 # install VS Code extensions
@@ -91,7 +147,8 @@ RUN /app/code-server/bin/code-server --extensions-dir /config/extensions \
       --install-extension ms-playwright.playwright \
       #      --install-extension lennardv.set-window-color-name \
       --install-extension cosmicsarthak.cosmicsarthak-neon-theme \
-      --install-extension 3xpo.midnight-codium
+      --install-extension 3xpo.midnight-codium \
+      --install-extension goodfoot.compare-branch
       #      --install-extension solomonkinard.git-blame
 #RUN /usr/local/bin/install-extension ms-playwright.playwright
   #
@@ -103,6 +160,8 @@ COPY /root /
 
 # ports and volumes
 EXPOSE 8443
+EXPOSE 8300
+EXPOSE 8320
 # VNC
 EXPOSE 6080
 # Wrangler

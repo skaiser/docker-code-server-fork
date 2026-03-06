@@ -2,8 +2,9 @@
 services:
   code-server:
     #image: lscr.io/linuxserver/code-server:latest
-    image: code-server-custom
-    container_name: code-server-custom
+    #image: code-server-custom
+    image: code-server-vnc
+    container_name: code-server-inf3
     cpus: 4
     shm_size: '1024m'
     secrets:
@@ -13,9 +14,9 @@ services:
       - PUID=501
       - PGID=501
       - TZ=Etc/UTC
-      - DOCKER_MODS=linuxserver/mods:code-server-nvm|linuxserver/mods:code-server-pnpm|linuxserver/mods:code-server-golang|linuxserver/mods:code-server-rust|linuxserver/mods:code-server-zsh|linuxserver/mods:code-server-python3|linuxserver/mods:code-server-npmglobal|linuxserver/mods:code-server-extension-arguments|linuxserver/mods:code-server-flutter|linuxserver/mods:code-server-docker
-      #      - DOCKER_MODS=linuxserver/mods:code-server-nvm|linuxserver/mods:code-server-pnpm|linuxserver/mods:code-server-golang|linuxserver/mods:code-server-rust|linuxserver/mods:code-server-zsh|linuxserver/mods:code-server-python3|linuxserver/mods:code-server-npmglobal|linuxserver/mods:code-server-extension-arguments
-      - VSCODE_EXTENSION_IDS=vscode-icons-team.vscode-icons|ms-azuretools.vscode-docker
+      #- DOCKER_MODS=linuxserver/mods:code-server-nvm|linuxserver/mods:code-server-pnpm|linuxserver/mods:code-server-golang|linuxserver/mods:code-server-rust|linuxserver/mods:code-server-zsh|linuxserver/mods:code-server-python3|linuxserver/mods:code-server-npmglobal|linuxserver/mods:code-server-extension-arguments|linuxserver/mods:code-server-flutter|linuxserver/mods:code-server-docker
+      - DOCKER_MODS=linuxserver/mods:code-server-nvm|linuxserver/mods:code-server-pnpm|linuxserver/mods:code-server-golang|linuxserver/mods:code-server-rust|linuxserver/mods:code-server-zsh|linuxserver/mods:code-server-python3|linuxserver/mods:code-server-npmglobal|linuxserver/mods:code-server-extension-arguments
+      - VSCODE_EXTENSION_IDS=vscode-icons-team.vscode-icons|ms-azuretools.vscode-docker|esbenp.prettier-vscode|yoavbls.pretty-ts-errors|Vue.volar|bierner.markdown-mermaid|webnative.webnative
       - PASSWORD=password #optional
       #- HASHED_PASSWORD= #optional
       - SUDO_PASSWORD=password #optional
@@ -24,10 +25,12 @@ services:
       - DEFAULT_WORKSPACE=/config/workspace #optional
       - PWA_APPNAME=code-server-custom #optional
     volumes:
-      - $HOME/code/code-server-workspace:/config
+      - $HOME/code/theinfinite3/code-server-workspace:/config/workspace
     ports:
-      - 127.0.0.1:8883:8443
+      - 127.0.0.1:8443:8443
       - 127.0.0.1:8300:3000
+      - 127.0.0.1:6080:6080 # VNC
+      - 127.0.0.1:8976:8976 # Wrangler
     restart: unless-stopped
 
 secrets:
@@ -35,5 +38,3 @@ secrets:
     file: $HOME/.ssh/id_ed25519
   .ssh_id_ed25519.pub:
     file: $HOME/.ssh/id_ed25519.pub
-
-
